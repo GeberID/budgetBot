@@ -10,11 +10,6 @@ repositories {
 }
 
 dependencies {
-    // https://mvnrepository.com/artifact/org.springframework/spring-beans
-    implementation 'org.springframework:spring-beans:7.0.0-M2'
-    // https://mvnrepository.com/artifact/org.springframework/spring-context
-    implementation 'org.springframework:spring-context:7.0.0-M2'
-
     compileOnly 'org.projectlombok:lombok:1.18.36'
     implementation 'org.json:json:20250107'
     implementation 'io.rest-assured:rest-assured:5.5.1'

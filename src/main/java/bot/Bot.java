@@ -1,13 +1,19 @@
 package bot;
 
+import lombok.AllArgsConstructor;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 public class Bot extends TelegramLongPollingBot {
-    private String BOT_NAME;
-    private String BOT_TOKEN;
+    private final String BOT_NAME;
+    private final String BOT_TOKEN;
+
+    public Bot(String botName, String botToken) {
+        BOT_NAME = botName;
+        BOT_TOKEN = botToken;
+    }
 
     @Override
     public void onUpdateReceived(Update update) {
