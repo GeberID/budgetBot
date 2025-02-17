@@ -59,15 +59,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         else if(update.hasCallbackQuery()){
             use(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getData());
-            DeleteMessage deleteMessage = new DeleteMessage();
-            deleteMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
-            deleteMessage.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-            //пауза
-            try {
-                execute(deleteMessage);
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
-            }
+            deleteMessage(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getMessage().getMessageId());
         }
     }
 
@@ -165,5 +157,14 @@ public class TelegramBot extends TelegramLongPollingBot {
         inlineKeyboardMarkup.setKeyboard(rowList);
         return inlineKeyboardMarkup;
     }
-
+    private void deleteMessage(long chatId, int messageId){
+        DeleteMessage deleteMessage = new DeleteMessage();
+        deleteMessage.setChatId(chatId);
+        deleteMessage.setMessageId(messageId);
+        try {
+            execute(deleteMessage);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
