@@ -8,17 +8,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class PrepareMessage {
-    public static InlineKeyboardMarkup createInlineKeyboard(List<String> texts){
+    public static InlineKeyboardMarkup inlineKeyboardMarkupBuilder(List<String> texts,int buttonsInRow){
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
-        List<List<InlineKeyboardButton>> rowList= new ArrayList<>();
-        for (String text : texts) {
-            InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
-            inlineKeyboardButton.setText(text);
-            inlineKeyboardButton.setCallbackData(text);
-            keyboardButtonsRow.add(inlineKeyboardButton);
+        List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
+        double rowsCount = Math.ceil((double) texts.size() /buttonsInRow);
+        int countText = 0;
+        for (int i = 0; i < rowsCount; i++) {
+            List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
+            for (int j = 0; j < buttonsInRow; j++) {
+                InlineKeyboardButton inlineKeyboardButton = new InlineKeyboardButton();
+                inlineKeyboardButton.setText(texts.get(countText));
+                inlineKeyboardButton.setCallbackData(texts.get(countText));
+                keyboardButtonsRow.add(inlineKeyboardButton);
+                countText++;
+            }
+            rowList.add(keyboardButtonsRow);
         }
-        rowList.add(keyboardButtonsRow);
         inlineKeyboardMarkup.setKeyboard(rowList);
         return inlineKeyboardMarkup;
     }

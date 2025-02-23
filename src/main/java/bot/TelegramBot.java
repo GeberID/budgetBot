@@ -1,8 +1,9 @@
 package bot;
 
-import bot.core.Budget;
 import bot.core.Commands;
 import bot.core.PrepareMessage;
+import bot.core.budget.Budget;
+import bot.core.budget.DefaultCategories;
 import bot.core.localization.RULocal;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethodMessage;
@@ -12,7 +13,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class TelegramBot extends TelegramLongPollingBot {
     private final String BOT_NAME;
@@ -21,13 +21,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     private Budget currentBudget;
     private boolean isWaitingAnswer = false;
     private String lastCommand = "null";
+    private String currentCategory = "";
 
     public TelegramBot(String botName, String botToken) {
         BOT_NAME = botName;
         BOT_TOKEN = botToken;
         budgetList = new HashMap<>();
-    }
 
+    }
+    //TODO refactoring all methods
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage()) {
@@ -64,13 +66,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                     lastCommand = update.getMessage().getText();
                 }
                 else if (message.equals(Commands.OUTCOME_COMMAND.getCommand())){
-                    executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAddOutcome()));
+                    executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAddOutcome(),
+                            PrepareMessage.inlineKeyboardMarkupBuilder(DefaultCategories.getAllNames(),2)));
                     isWaitingAnswer = true;
                     lastCommand = update.getMessage().getText();
                 }
                 else if (lastCommand.equals(Commands.INCOME_COMMAND.getCommand()) && isWaitingAnswer) {
                     try {
-                        addIncome(chatId, Long.parseLong(message));
+                        addIncome(chatId, Float.parseFloat(message));
                         deleteMessage(chatId,update.getMessage().getMessageId());
                         isWaitingAnswer = false;
                     } catch (NumberFormatException e) {
@@ -80,23 +83,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                 }
                 else if (lastCommand.equals(Commands.OUTCOME_COMMAND.getCommand()) && isWaitingAnswer) {
                     try {
-                        addOutcome(chatId, Long.parseLong(message));
                         deleteMessage(chatId,update.getMessage().getMessageId());
+                        addOutcome(chatId,currentCategory, Float.parseFloat(message));
                         isWaitingAnswer = false;
                     } catch (NumberFormatException e) {
                         executeMessage(PrepareMessage.createMessage(chatId, RULocal.getErrorParseLong()));
                         isWaitingAnswer = true;
                     }
-
                 }
             }
         }
         else if(update.hasCallbackQuery()){
-            use(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getData());
-            deleteMessage(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getMessage().getMessageId());
+            if(lastCommand.equals(Commands.LIST_COMMAND.getCommand())){
+                use(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getData());
+                deleteMessage(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getMessage().getMessageId());
+            }else if (lastCommand.equals(Commands.OUTCOME_COMMAND.getCommand())){
+                currentCategory = update.getCallbackQuery().getData();
+                executeMessage(PrepareMessage.createMessage(update.getCallbackQuery().getMessage().getChatId(), RULocal.getAddOutcome()));
+            }
         }
     }
-
     @Override
     public String getBotUsername() {
         return BOT_NAME;
@@ -121,7 +127,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
     private void getList(long chatId){
-        executeMessage(PrepareMessage.createMessage(chatId,RULocal.getAllValues(), PrepareMessage.createInlineKeyboard(budgetList.keySet().stream().toList())));
+        executeMessage(PrepareMessage.createMessage(chatId,RULocal.getAllValues(),
+                PrepareMessage.inlineKeyboardMarkupBuilder(budgetList.keySet().stream().toList(),1)));
     }
     private void use(long chatId, String name) {
         currentBudget = budgetList.get(name);
@@ -130,7 +137,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void help(long chatId) {
         executeMessage(PrepareMessage.createMessage(chatId,RULocal.getHelp()));
     }
-    private void addIncome(long chatId, long money) {
+    private void addIncome(long chatId, Float money) {
         if(currentBudget != null){
             currentBudget.addIncome(money);
             executeMessage(PrepareMessage.createMessage(chatId,RULocal.getAdded() + info()));
@@ -138,16 +145,16 @@ public class TelegramBot extends TelegramLongPollingBot {
             executeMessage(PrepareMessage.createMessage(chatId,RULocal.getSelectValueForWork()));
         }
     }
-    private void addOutcome(long chatId, long money){
+    private void addOutcome(long chatId, String defaultCategories, Float money){
         if(currentBudget != null){
-            currentBudget.addOutcome(money);
+            currentBudget.addOutcome(defaultCategories,money);
             executeMessage(PrepareMessage.createMessage(chatId,RULocal.getAdded()+ info()));
         }else {
             executeMessage(PrepareMessage.createMessage(chatId,RULocal.getSelectValueForWork()));
         }
     }
     private String info(){
-        return  RULocal.getInfo().formatted(currentBudget.getIncome(),currentBudget.getOutcome(),currentBudget.statusBudget());
+        return  RULocal.getInfo().formatted(currentBudget.getIncome(),currentBudget.getOutcome(),currentBudget.total());
     }
     private void executeMessage(BotApiMethodMessage message) {
         try {
