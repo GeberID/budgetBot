@@ -18,7 +18,9 @@ public enum DefaultCategories {
     SPORT("Спорт"),
     GITS("Подарки"),
     ANIMALS("Животные"),
-    CHILD("Дети");
+    CHILD("Дети"),
+    UTILITIES("Жкх"),
+    OTHER("Остальное");
 
     private final String name;
     DefaultCategories(String name){
