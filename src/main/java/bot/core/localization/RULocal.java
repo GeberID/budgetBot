@@ -9,21 +9,19 @@ public abstract class RULocal {
     private static String selectedValue = "Выбрана запись %s\n";
     private static String added = "Добавлено\n";
     private static String selectValueForWork = "Выберите запись для работы\n";
-    private static String info = "Информация по счету:\nПрибыль = %s рублей\nТраты = %s рублей\nОбщая оценка = %s рублей\n";
-    private static String addIncome = "Добавить доходы\n";
-    private static String addOutcome = "Добавить расходы\n";
+    private static String infoMessage = "Информация по счету:\nПрибыль:\n%s\n\nТраты:\n%s\nОбщая оценка:\n%s\n";
+    private static String selectCategory = "Выберите категорию\n";
+    private static String insertNumber = "Введите число\n";
     //Error
     private static String errorCreatingNewValue = "Запись с именем %s уже существует";
     private static String errorParseLong = "Вы ввели не числовое значение\nВведите число";
     //Help
     private static String help = "Команды:\n"
-            + "/start - начать все с начала\n"
-            + "/create ... - добавить новый бюджет. Для команды необходимо передать название новой записи\n"
-            + "/list - список всех созданных записей\n"
-            + "/use ... - выбрать бюджет для работы с ним. Для команды необходимо передать название новой записи\n"
-            + "/help - получить справку у бота\n"
-            + "/income ... - добавить доходы\n"
-            + "/outcome ... - добавить расходы";
+            + "/start - Начать работу с ботом заново\n"
+            + "/create - Создать новый бюджет\n"
+            + "/list - Отобразить список всех созданных бюджетов\n"
+            + "/income - Добавить общий доход\n"
+            + "/outcome - Добавить траты по категориям";
 
     public static String getStartBot() {
         return startBot;
@@ -53,8 +51,8 @@ public abstract class RULocal {
         return selectValueForWork;
     }
 
-    public static String getInfo() {
-        return info;
+    public static String getInfoMessage() {
+        return infoMessage;
     }
 
     public static String getErrorCreatingNewValue() {
@@ -65,15 +63,16 @@ public abstract class RULocal {
         return help;
     }
 
-    public static String getAddIncome() {
-        return addIncome;
-    }
 
-    public static String getAddOutcome() {
-        return addOutcome;
+    public static String getInsertNumber() {
+        return insertNumber;
     }
 
     public static String getErrorParseLong() {
         return errorParseLong;
+    }
+
+    public static String getselectCategory() {
+        return selectCategory;
     }
 }

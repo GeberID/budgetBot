@@ -16,11 +16,10 @@ public class User {
 
     public User(String name) {
         this.name = name;
-        budgetList = new HashMap<>();
         this.isWaitingAnswer = false;
-        lastCommand = "null";
-        currentCategory = "";
-        budgetList = new HashMap<>();
+        this.lastCommand = "null";
+        this.currentCategory = "";
+        this.budgetList = new HashMap<>();
     }
 
     public String getName() {

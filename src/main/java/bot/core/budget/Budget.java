@@ -1,6 +1,8 @@
 package bot.core.budget;
 
 
+import bot.core.localization.RULocal;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +37,14 @@ public class Budget {
             totalOutcome = totalOutcome + value;
         }
         return income-totalOutcome;
+    }
+
+    public String buildInfo() {
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, Double> stringDoubleEntry : outcome.entrySet()) {
+            builder.append(stringDoubleEntry.getKey() + " - " + stringDoubleEntry.getValue() + "\n");
+        }
+        return RULocal.getInfoMessage().formatted(income, builder.toString(), total());
     }
 
 }

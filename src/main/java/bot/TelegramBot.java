@@ -61,12 +61,12 @@ public class TelegramBot extends TelegramLongPollingBot {
                     users.get(chatId).waitAnswer(false);
                     users.get(chatId).setLastCommand(update.getMessage().getText());
                 }else if (message.equals(Commands.INCOME_COMMAND.getCommand())){
-                    executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAddIncome()));
+                    executeMessage(PrepareMessage.createMessage(chatId, RULocal.getInsertNumber()));
                     users.get(chatId).waitAnswer(true);
                     users.get(chatId).setLastCommand(update.getMessage().getText());
                 }
                 else if (message.equals(Commands.OUTCOME_COMMAND.getCommand())){
-                    executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAddOutcome(),
+                    executeMessage(PrepareMessage.createMessage(chatId, RULocal.getselectCategory(),
                             PrepareMessage.inlineKeyboardMarkupBuilder(DefaultCategories.getAllNames(),2)));
                     users.get(chatId).waitAnswer(true);
                     users.get(chatId).setLastCommand(update.getMessage().getText());
@@ -101,7 +101,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             } else if (users.get(chatId).getLastCommand().equals(Commands.OUTCOME_COMMAND.getCommand())) {
                 users.get(chatId).setCurrentCategory(update.getCallbackQuery().getData());
                 deleteMessage(update.getCallbackQuery().getMessage().getChatId(), update.getCallbackQuery().getMessage().getMessageId());
-                executeMessage(PrepareMessage.createMessage(update.getCallbackQuery().getMessage().getChatId(), RULocal.getAddOutcome()));
+                executeMessage(PrepareMessage.createMessage(update.getCallbackQuery().getMessage().getChatId(), RULocal.getInsertNumber()));
 
             }
         }
@@ -165,7 +165,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private String info(User user) {
-        return RULocal.getInfo().formatted(user.getCurrentBudget().getIncome(), user.getCurrentBudget().getOutcome(), user.getCurrentBudget().total());
+        return user.getCurrentBudget().buildInfo();
     }
     private void executeMessage(BotApiMethodMessage message) {
         try {
