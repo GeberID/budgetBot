@@ -1,8 +1,5 @@
 package bot.core.budget;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,7 +17,7 @@ public enum DefaultCategories {
     ANIMALS("Животные"),
     CHILD("Дети"),
     UTILITIES("Жкх"),
-    OTHER("Остальное");
+    OTHER("Прочее");
 
     private final String name;
     DefaultCategories(String name){

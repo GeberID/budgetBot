@@ -5,6 +5,7 @@ import bot.core.PrepareMessage;
 import bot.core.budget.Budget;
 import bot.core.budget.DefaultCategories;
 import bot.core.localization.RULocal;
+import bot.core.user.User;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethodMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
@@ -17,17 +18,11 @@ import java.util.Map;
 public class TelegramBot extends TelegramLongPollingBot {
     private final String BOT_NAME;
     private final String BOT_TOKEN;
-    private Map<String, Budget> budgetList;
-    private Budget currentBudget;
-    private boolean isWaitingAnswer = false;
-    private String lastCommand = "null";
-    private String currentCategory = "";
+    Map<Long, User> users = new HashMap<>();
 
     public TelegramBot(String botName, String botToken) {
         BOT_NAME = botName;
         BOT_TOKEN = botToken;
-        budgetList = new HashMap<>();
-
     }
     //TODO refactoring all methods
     @Override
@@ -37,69 +32,77 @@ public class TelegramBot extends TelegramLongPollingBot {
                 String message = update.getMessage().getText();
                 long chatId = update.getMessage().getChatId();
                 if(message.equals(Commands.START_COMMAND.getCommand())){
-                    start(chatId,update.getMessage().getChat().getUserName());
-                    isWaitingAnswer = true;
-                    lastCommand = update.getMessage().getText();
+                    if (!users.containsKey(chatId)) {
+                        users.put(chatId, new User(update.getMessage().getChat().getUserName()));
+                    }
+                    start(chatId, users.get(chatId));
+                    users.get(chatId).waitAnswer(true);
+                    users.get(chatId).setLastCommand(update.getMessage().getText());
                 }
+                //TODO fix bug. I can watch budgets from another person and use it
                 else if (message.equals(Commands.CREATE_COMMAND.getCommand())){
                     executeMessage(PrepareMessage.createMessage(chatId, RULocal.getLetsCreateNewValue()));
-                    isWaitingAnswer = true;
-                    lastCommand = update.getMessage().getText();
-                }
-                else if (lastCommand.equals(Commands.START_COMMAND.getCommand()) || lastCommand.equals(Commands.CREATE_COMMAND.getCommand()) && isWaitingAnswer) {
-                    create(chatId,message);
-                    isWaitingAnswer = false;
-                    lastCommand = "";
+                    users.get(chatId).waitAnswer(true);
+                    users.get(chatId).setLastCommand(update.getMessage().getText());
+                } else if (users.get(chatId).getLastCommand().equals(Commands.START_COMMAND.getCommand()) ||
+                        users.get(chatId).getLastCommand().equals(Commands.CREATE_COMMAND.getCommand()) &&
+                                users.get(chatId).waitAnswer(true)) {
+                    create(chatId, users.get(chatId), message);
+                    users.get(chatId).waitAnswer(false);
+                    users.get(chatId).setLastCommand("");
                 }
                 else if (message.equals(Commands.LIST_COMMAND.getCommand())){
-                    getList(chatId);
-                    isWaitingAnswer = false;
-                    lastCommand = update.getMessage().getText();
+                    getList(chatId, users.get(chatId));
+                    users.get(chatId).waitAnswer(false);
+                    users.get(chatId).setLastCommand(update.getMessage().getText());
                 }
                 else if (message.equals(Commands.HELP_COMMAND.getCommand())){
                     help(chatId);
-                    isWaitingAnswer = false;
-                    lastCommand = update.getMessage().getText();
+                    users.get(chatId).waitAnswer(false);
+                    users.get(chatId).setLastCommand(update.getMessage().getText());
                 }else if (message.equals(Commands.INCOME_COMMAND.getCommand())){
                     executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAddIncome()));
-                    isWaitingAnswer = true;
-                    lastCommand = update.getMessage().getText();
+                    users.get(chatId).waitAnswer(true);
+                    users.get(chatId).setLastCommand(update.getMessage().getText());
                 }
                 else if (message.equals(Commands.OUTCOME_COMMAND.getCommand())){
                     executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAddOutcome(),
                             PrepareMessage.inlineKeyboardMarkupBuilder(DefaultCategories.getAllNames(),2)));
-                    isWaitingAnswer = true;
-                    lastCommand = update.getMessage().getText();
-                }
-                else if (lastCommand.equals(Commands.INCOME_COMMAND.getCommand()) && isWaitingAnswer) {
+                    users.get(chatId).waitAnswer(true);
+                    users.get(chatId).setLastCommand(update.getMessage().getText());
+                } else if (users.get(chatId).getLastCommand().equals(Commands.INCOME_COMMAND.getCommand()) &&
+                        users.get(chatId).waitAnswer(true)) {
                     try {
-                        addIncome(chatId, Float.parseFloat(message));
+                        addIncome(chatId, users.get(chatId), Float.parseFloat(message));
                         deleteMessage(chatId,update.getMessage().getMessageId());
-                        isWaitingAnswer = false;
+                        users.get(chatId).waitAnswer(false);
                     } catch (NumberFormatException e) {
                         executeMessage(PrepareMessage.createMessage(chatId, RULocal.getErrorParseLong()));
-                        isWaitingAnswer = true;
+                        users.get(chatId).waitAnswer(true);
                     }
-                }
-                else if (lastCommand.equals(Commands.OUTCOME_COMMAND.getCommand()) && isWaitingAnswer) {
+                } else if (users.get(chatId).getLastCommand().equals(Commands.OUTCOME_COMMAND.getCommand()) &&
+                        users.get(chatId).waitAnswer(true)) {
                     try {
                         deleteMessage(chatId,update.getMessage().getMessageId());
-                        addOutcome(chatId,currentCategory, Float.parseFloat(message));
-                        isWaitingAnswer = false;
+                        addOutcome(chatId, users.get(chatId), users.get(chatId).getCurrentCategory(), Double.parseDouble(message));
+                        users.get(chatId).waitAnswer(false);
                     } catch (NumberFormatException e) {
                         executeMessage(PrepareMessage.createMessage(chatId, RULocal.getErrorParseLong()));
-                        isWaitingAnswer = true;
+                        users.get(chatId).waitAnswer(true);
                     }
                 }
             }
         }
         else if(update.hasCallbackQuery()){
-            if(lastCommand.equals(Commands.LIST_COMMAND.getCommand())){
-                use(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getData());
+            long chatId = update.getCallbackQuery().getMessage().getChatId();
+            if (users.get(chatId).getLastCommand().equals(Commands.LIST_COMMAND.getCommand())) {
+                use(update.getCallbackQuery().getMessage().getChatId(), users.get(chatId), update.getCallbackQuery().getData());
                 deleteMessage(update.getCallbackQuery().getMessage().getChatId(),update.getCallbackQuery().getMessage().getMessageId());
-            }else if (lastCommand.equals(Commands.OUTCOME_COMMAND.getCommand())){
-                currentCategory = update.getCallbackQuery().getData();
+            } else if (users.get(chatId).getLastCommand().equals(Commands.OUTCOME_COMMAND.getCommand())) {
+                users.get(chatId).setCurrentCategory(update.getCallbackQuery().getData());
+                deleteMessage(update.getCallbackQuery().getMessage().getChatId(), update.getCallbackQuery().getMessage().getMessageId());
                 executeMessage(PrepareMessage.createMessage(update.getCallbackQuery().getMessage().getChatId(), RULocal.getAddOutcome()));
+
             }
         }
     }
@@ -111,50 +114,58 @@ public class TelegramBot extends TelegramLongPollingBot {
     public String getBotToken() {
         return BOT_TOKEN;
     }
-    private void start(long chatId, String user){
-        budgetList = new HashMap<>();
+
+    private void start(long chatId, User user) {
+
+        user.setBudgetList(new HashMap<>());
         executeMessage(PrepareMessage.createMessage(chatId, RULocal.getStartBot().formatted(user)));
         executeMessage(PrepareMessage.createMessage(chatId, RULocal.getLetsCreateNewValue()));
     }
-    private void create(long chatId,String name) {
-        if(!budgetList.containsKey(name)){
-            budgetList.put(name,new Budget());
-            currentBudget = budgetList.get(name);
-            executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAfterCreateingNewValue().formatted(name)+ info()));
+
+    private void create(long chatId, User user, String name) {
+        if (!user.getBudgetList().containsKey(name)) {
+            user.getBudgetList().put(name, new Budget());
+            user.setCurrentBudget(user.getBudgetList().get(name));
+            executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAfterCreateingNewValue().formatted(name) + info(user)));
         }
         else {
             executeMessage(PrepareMessage.createMessage(chatId,RULocal.getErrorCreatingNewValue().formatted(name)));
         }
     }
-    private void getList(long chatId){
+
+    private void getList(long chatId, User user) {
         executeMessage(PrepareMessage.createMessage(chatId,RULocal.getAllValues(),
-                PrepareMessage.inlineKeyboardMarkupBuilder(budgetList.keySet().stream().toList(),1)));
+                PrepareMessage.inlineKeyboardMarkupBuilder(user.getBudgetList().keySet().stream().toList(), 1)));
     }
-    private void use(long chatId, String name) {
-        currentBudget = budgetList.get(name);
-        executeMessage(PrepareMessage.createMessage(chatId,RULocal.getSelectedValue().formatted(name) + info()));
+
+    private void use(long chatId, User user, String name) {
+        user.setCurrentBudget(user.getBudgetList().get(name));
+        executeMessage(PrepareMessage.createMessage(chatId, RULocal.getSelectedValue().formatted(name) + info(user)));
     }
     private void help(long chatId) {
         executeMessage(PrepareMessage.createMessage(chatId,RULocal.getHelp()));
     }
-    private void addIncome(long chatId, Float money) {
-        if(currentBudget != null){
-            currentBudget.addIncome(money);
-            executeMessage(PrepareMessage.createMessage(chatId,RULocal.getAdded() + info()));
+
+    private void addIncome(long chatId, User user, Float money) {
+        if (user.getCurrentBudget() != null) {
+            user.getCurrentBudget().addIncome(money);
+            executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAdded() + info(user)));
         }else {
             executeMessage(PrepareMessage.createMessage(chatId,RULocal.getSelectValueForWork()));
         }
     }
-    private void addOutcome(long chatId, String defaultCategories, Float money){
-        if(currentBudget != null){
-            currentBudget.addOutcome(defaultCategories,money);
-            executeMessage(PrepareMessage.createMessage(chatId,RULocal.getAdded()+ info()));
+
+    private void addOutcome(long chatId, User user, String defaultCategories, Double money) {
+        if (user.getCurrentBudget() != null) {
+            user.getCurrentBudget().addOutcome(defaultCategories, money);
+            executeMessage(PrepareMessage.createMessage(chatId, RULocal.getAdded() + info(user)));
         }else {
             executeMessage(PrepareMessage.createMessage(chatId,RULocal.getSelectValueForWork()));
         }
     }
-    private String info(){
-        return  RULocal.getInfo().formatted(currentBudget.getIncome(),currentBudget.getOutcome(),currentBudget.total());
+
+    private String info(User user) {
+        return RULocal.getInfo().formatted(user.getCurrentBudget().getIncome(), user.getCurrentBudget().getOutcome(), user.getCurrentBudget().total());
     }
     private void executeMessage(BotApiMethodMessage message) {
         try {
